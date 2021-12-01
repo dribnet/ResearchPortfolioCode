@@ -187,32 +187,7 @@ def writeCSV(searchResults,csvsavepath):
     print(df)
     df.to_csv(csvsavepath,index = False, header=True)
 
-
-
-
-# Main Section
-
-def main():
-    #put main section here
-    parser = argparse.ArgumentParser(description="Pick Best Image from Search")
-    parser.add_argument('--folder', default='twem/', help="input folder")
-    parser.add_argument('--query', default='picture of something', help="search query")
-    parser.add_argument('--matches', default=5, help ="number of matches wanted")
-    parser.add_argument('--show', type=int, default=1, help ="set to 0 to not display the result (only save)")
-    args = parser.parse_args()
-
-    do_setup()
-
-    # set search query
-    search_query = str(args.query)
-    print("Looking for best matches for: " + search_query)
-
-    # Set the path to the photos
-    photos_path = Path(args.folder)
-
-    # set how many matches should be returned
-    numberResults = int(args.matches)
-
+def prepare_folder(photos_path):
     # List all JPGs in the folder
     photos_files = list(photos_path.glob("*.jpg"))
     #sometimes has to be changed to png
@@ -239,14 +214,17 @@ def main():
         print("This set has never been queried")
         folderMaker(analysis_path)
 
-    newAnalysisPath = Path(analysis_path)/search_query
+    return features_path, analysis_path
 
+
+def perform_analysis(search_query, numberResults, photos_path, features_path, analysis_path, show_result):
+    # setup path for result
+    newAnalysisPath = Path(analysis_path)/search_query
     if (os.path.exists(str(newAnalysisPath))):
         print("The query: "+search_query+" has been explored before - rerunning analysis")
     else:
         print("The query: "+search_query+" has not been explored before")
         folderMaker(newAnalysisPath)
-
     print("Results can be found in: "+str(newAnalysisPath))
 
     # Run Image Search
@@ -257,11 +235,36 @@ def main():
 
     writeCSV(searchResults,csvsavepath)
 
-    drawResults(newAnalysisPath,photos_path,searchResults,search_query,args.show)
+    drawResults(newAnalysisPath,photos_path,searchResults,search_query,show_result)
 
-    
+    return newAnalysisPath
 
 
+# Main Section
+def main():
+    #put main section here
+    parser = argparse.ArgumentParser(description="Pick Best Image from Search")
+    parser.add_argument('--folder', default='twem/', help="input folder")
+    parser.add_argument('--query', default='picture of something', help="search query")
+    parser.add_argument('--matches', default=5, help ="number of matches wanted")
+    parser.add_argument('--show', type=int, default=1, help ="set to 0 to not display the result (only save)")
+    args = parser.parse_args()
+
+    do_setup()
+
+    # set search query
+    search_query = str(args.query)
+    print("Looking for best matches for: " + search_query)
+
+    # set how many matches should be returned
+    numberResults = int(args.matches)
+
+    # Set the path to the photos
+    photos_path = Path(args.folder)
+
+    features_path, analysis_path = prepare_folder(photos_path)
+
+    newAnalysisPath = perform_analysis(search_query, numberResults, photos_path, features_path, analysis_path, args.show)
 
 
 if __name__ == '__main__':
