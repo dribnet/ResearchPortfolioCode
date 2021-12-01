@@ -11,9 +11,16 @@ import pandas as pd
 import os
 from datetime import datetime
 
-# Load the open CLIP model
-device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/32", device=device)
+device = None
+model = None
+preprocess = None
+
+def do_setup():
+    global device, model, preprocess
+
+    # Load the open CLIP model
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model, preprocess = clip.load("ViT-B/32", device=device)
 
 # Function that computes the feature vectors for a batch of images
 def compute_clip_features(photos_batch):
@@ -139,7 +146,7 @@ def resizeImage(imagePath,newImagePath):
 
 # draw search results document
 
-def drawResults(analysis_path,photos_path,searchResults,search_query):
+def drawResults(analysis_path,photos_path,searchResults,search_query,show_result=True):
     documentLength = 280
     documentWidth = 50+(230*len(searchResults))
     analysisResultsPath = Path(analysis_path)/"analysisResults.jpg"
@@ -163,7 +170,8 @@ def drawResults(analysis_path,photos_path,searchResults,search_query):
         writeText.text((textoffset, 255),str(indx+1)+". Probability: "+ str(float(100*pictures[1]))+"%",font=fnt,fill=(0,0,0))
 
     res.save(analysisResultsPath)
-    res.show() 
+    if show_result:
+        res.show() 
 
 def writeCSV(searchResults,csvsavepath):
     container = []
@@ -190,7 +198,10 @@ def main():
     parser.add_argument('--folder', default='twem/', help="input folder")
     parser.add_argument('--query', default='picture of something', help="search query")
     parser.add_argument('--matches', default=5, help ="number of matches wanted")
+    parser.add_argument('--show', type=int, default=1, help ="set to 0 to not display the result (only save)")
     args = parser.parse_args()
+
+    do_setup()
 
     # set search query
     search_query = str(args.query)
@@ -246,7 +257,7 @@ def main():
 
     writeCSV(searchResults,csvsavepath)
 
-    drawResults(newAnalysisPath,photos_path,searchResults,search_query)
+    drawResults(newAnalysisPath,photos_path,searchResults,search_query,args.show)
 
     
 
