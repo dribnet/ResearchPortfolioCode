@@ -36,6 +36,8 @@ description_pairs = [
     ["page", "a page of text about segmentation"],
 ]
 
+device = None
+
 def fetch_images(preprocess, image_files):
     images = []
 
@@ -47,7 +49,7 @@ def fetch_images(preprocess, image_files):
 
 def do_image_features(model, images, image_mean, image_std):
     # image_input = torch.tensor(np.stack(images)).cuda()
-    image_input = torch.tensor(np.stack(images)).cpu()
+    image_input = torch.tensor(np.stack(images)).to(device)
     image_input -= image_mean[:, None, None]
     image_input /= image_std[:, None, None]
 
@@ -58,7 +60,7 @@ def do_image_features(model, images, image_mean, image_std):
 
 def do_text_features(model, texts):
     # text_input = clip.tokenize(texts).cuda()
-    text_input = clip.tokenize(texts).cpu()
+    text_input = clip.tokenize(texts).to(device)
 
     with torch.no_grad():
         text_features = model.encode_text(text_input).float()
@@ -67,12 +69,12 @@ def do_text_features(model, texts):
 
 def calc_self_image_similarity(image_features):
     image_features /= image_features.norm(dim=-1, keepdim=True)
-    return image_features.cpu().numpy() @ image_features.cpu().numpy().T
+    return image_features.cpu().detach().numpy() @ image_features.cpu().detach().numpy().T
 
 def calc_target_similarity(target_features, image_features):
     target_features /= target_features.norm(dim=-1, keepdim=True)
     image_features /= image_features.norm(dim=-1, keepdim=True)
-    return target_features.cpu().numpy() @ image_features.cpu().numpy().T
+    return target_features.cpu().detach().numpy() @ image_features.cpu().detach().numpy().T
 
 def show_target_similarity(outfile, similarity, images, target_image, target_text):
     x_count = len(images)
@@ -105,6 +107,8 @@ def show_target_similarity(outfile, similarity, images, target_image, target_tex
     fig.savefig(outfile)
 
 def main():
+    global device
+
     parser = argparse.ArgumentParser(description="test CLIP")
     parser.add_argument('--input-glob', default='CLIP.png',
                         help="list of files to compare with target")
@@ -125,9 +129,9 @@ def main():
 
     model, preprocess = clip.load("ViT-B/32")
 
-    input_resolution = model.input_resolution.item()
-    context_length = model.context_length.item()
-    vocab_size = model.vocab_size.item()
+    input_resolution = model.visual.input_resolution
+    context_length = model.context_length
+    vocab_size = model.vocab_size
 
     print("Model parameters:", f"{np.sum([int(np.prod(p.shape)) for p in model.parameters()]):,}")
     print("Input resolution:", input_resolution)
@@ -143,8 +147,8 @@ def main():
     # image_mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).cuda()
     # image_std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).cuda()
 
-    image_mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).cpu()
-    image_std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).cpu()
+    image_mean = torch.tensor([0.48145466, 0.4578275, 0.40821073]).to(device)
+    image_std = torch.tensor([0.26862954, 0.26130258, 0.27577711]).to(device)
 
     image_files = list(sorted(glob.glob(args.input_glob)));
 
