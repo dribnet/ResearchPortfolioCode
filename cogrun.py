@@ -1,9 +1,11 @@
 # Prediction interface for Cog ⚙️
 # Reference: https://github.com/replicate/cog/blob/main/docs/python.md
 
+import os
 import cog
 import pathlib
-from explorer import do_setup, perform_analysis
+from pathlib import Path
+from explorer import do_setup, perform_analysis, prepare_folder
 
 # https://stackoverflow.com/a/6587648/1010653
 import tempfile, shutil
@@ -18,7 +20,7 @@ class Explorer(cog.Predictor):
     def setup(self):
         """Load the model into memory to make running multiple predictions efficient"""
         do_setup()
-        self.photos_path = 'twem/'
+        self.photos_path = Path('twem/')
         self.features_path, self.analysis_path = prepare_folder(self.photos_path)
 
     @cog.input("query", type=str, help="text to input")
